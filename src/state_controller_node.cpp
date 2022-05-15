@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
 
   auto node = std::shared_ptr<ros::NodeHandle>(new ros::NodeHandle());
 
-  TC my_tc(node);
+  SC my_sc(node);
 
   ros::Rate loop_rate(1000);
 
