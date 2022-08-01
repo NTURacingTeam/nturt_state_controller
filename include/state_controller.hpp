@@ -20,77 +20,57 @@ public:
     {
       case _CAN_FB1:
         if (parser_.decode(_CAN_FB1, msg->data) == OK) {
-          checkSensor |= 0b00000000000001;
+          checkSensor |= 0b0000000001;
         }
         break;
       case _CAN_FB2:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000000000010;
+          checkSensor |= 0b0000000010;
         }
         break;
       case _CAN_RB1:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000000000100;
+          checkSensor |= 0b0000000100;
         }
         break;
       case _CAN_RB2:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000000001000;
+          checkSensor |= 0b0000001000;
         }
         break;
       case _CAN_DB1:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000000010000;
+          checkSensor |= 0b0000010000;
         }
         break;
       case _CAN_DB2:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000000100000;
+          checkSensor |= 0b0000100000;
         }
         break;
       case _CAN_BMS:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000001000000;
+          checkSensor |= 0b0001000000;
         }
         break;
       case _CAN_HIS:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000010000000;
+          checkSensor |= 0b0010000000;
         }
         break;
       case _CAN_HIA:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00000100000000;
+          checkSensor |= 0b0100000000;
         }
         break;
       case _CAN_HIG:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00001000000000;
-        }
-        break;
-      case _CAN_OIS:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00010000000000;
-        }
-        break;
-      case _CAN_OIA:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b00100000000000;
-        }
-        break;
-      case _CAN_OIG:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b01000000000000;
-        }
-        break;
-      case _CAN_OIC:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b10000000000000;
+          checkSensor |= 0b1000000000;
         }
         break;
     }
 
-    if (checkSensor == 0b11111111111111){
+    if (checkSensor == 0b1111111111){
       // send can message to the controller
       std_msgs::Bool state;
       state.data = 1;
@@ -104,6 +84,7 @@ public:
   }
 
 private:
+  Parser parser_;
   std::shared_ptr<ros::NodeHandle> nh_;
   ros::Publisher state_pub_;
   ros::Subscriber can_sub_;
