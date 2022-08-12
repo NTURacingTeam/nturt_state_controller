@@ -8,6 +8,8 @@
 #include <memory>
 #include <ros/ros.h>
 
+using namespace std;
+
 class State_Controller {
 public:
   State_Controller(std::shared_ptr<ros::NodeHandle> &nh);
