@@ -21,6 +21,7 @@ public:
       case _CAN_FB1:
         if (parser_.decode(_CAN_FB1, msg->data) == OK) {
           checkSensor |= 0b0000000001;
+          cout<<"received CAN FB1"<<endl;
         }
         break;
       case _CAN_FB2:
