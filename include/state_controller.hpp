@@ -96,6 +96,7 @@ private:
   ros::Publisher state_pub_;
   ros::Publisher can_pub_;
   ros::Subscriber can_sub_;
+  std::cout << "CAN published" << std::endl;
 };
 
 State_Controller::State_Controller(std::shared_ptr<ros::NodeHandle> &nh) : nh_(nh) {
