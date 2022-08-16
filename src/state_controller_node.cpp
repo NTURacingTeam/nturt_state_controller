@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
 
   SC my_sc(node);
 
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(100);
 
   while (ros::ok()) {
     ros::spinOnce();
