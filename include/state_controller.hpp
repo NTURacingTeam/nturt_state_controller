@@ -104,7 +104,6 @@ State_Controller::State_Controller(std::shared_ptr<ros::NodeHandle> &nh) : nh_(n
   state_pub_ = nh_->advertise<std_msgs::Bool>("node_state", 5);
   can_pub_ = nh_->advertise<can_msgs::Frame>("sent_messages", 5);
   can_sub_ = nh_->subscribe("received_messages", 5, &State_Controller::onCan, this);
-  checkVCU();
 }
 
 typedef State_Controller SC;
