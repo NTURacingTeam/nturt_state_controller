@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
 
   while (ros::ok()) {
     ros::spinOnce();
-    SC.checkVCU();
+    SC::checkVCU();
     loop_rate.sleep();
   }
 
