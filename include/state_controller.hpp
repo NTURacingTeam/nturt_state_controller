@@ -88,6 +88,7 @@ public:
     vcu1msg.header.stamp = ros::Time::now();
     vcu1msg.data = { 1, 0, 0, 0, 0, 0, 0, 0 };
     can_pub_.publish(vcu1msg);
+    std::cout << "CAN published" << std::endl;
   }
 
 private:
@@ -96,7 +97,6 @@ private:
   ros::Publisher state_pub_;
   ros::Publisher can_pub_;
   ros::Subscriber can_sub_;
-  std::cout << "CAN published" << std::endl;
 };
 
 State_Controller::State_Controller(std::shared_ptr<ros::NodeHandle> &nh) : nh_(nh) {
