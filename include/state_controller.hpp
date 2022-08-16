@@ -84,8 +84,9 @@ public:
   }
   void checkVCU() {
     can_msgs::Frame vcu1msg;
-    vcu1msg.id = 0x0008A7D0;
     vcu1msg.header.stamp = ros::Time::now();
+    vcu1msg.id = 0x0008A7D0;
+    vcu1msg.is_extended = 1;
     vcu1msg.data = { 1, 0, 0, 0, 0, 0, 0, 0 };
     can_pub_.publish(vcu1msg);
     std::cout << "CAN published" << std::endl;
