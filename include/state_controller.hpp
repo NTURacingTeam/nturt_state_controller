@@ -1,123 +1,40 @@
 #ifndef STATE_CONTROLLER_HPP
 #define STATE_CONTROLLER_HPP
 
-#include <NTURT_CAN_Parser.hpp>
-#include <can_msgs/Frame.h>
-#include "std_msgs/Bool.h"
-#include <cp_can_id.hpp>
+// std include
+#include <iostream>
 #include <memory>
+
+// ros include
 #include <ros/ros.h>
+
+// ros message include
+#include <can_msgs/Frame.h>
+#include <std_msgs/Bool.h>
+
+// nturt include
+#include <cp_can_id.hpp>
+#include <NTURT_CAN_Parser.hpp>
+
 #include <wiringPi.h>
 
-using namespace std;
+class StateController {
+    public:
+        StateController(std::shared_ptr<ros::NodeHandle> &_nh);
 
-class State_Controller {
-public:
-  State_Controller(std::shared_ptr<ros::NodeHandle> &nh);
+        void onCan(const can_msgs::Frame::ConstPtr &_msg);
+        
+        void checkVCU();
 
-  void onCan(const can_msgs::Frame::ConstPtr &msg) {
-    int id = msg->id;
-    int checkSensor;
-    // std::cout << "id: " << id << std::endl;
-    switch (id)
-    {
-      case _CAN_FB2:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0001;
-          brake_trigger_ = parser_.get_afd("BMS", "N");
-        }
-        break;
-      case _CAN_RB1:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0010;
-        }
-        break;
-      case _CAN_DB1:
-        if (parser_.decode(_CAN_DB1, msg->data) == OK)
-        {
-          checkSensor |= 0b0100;
-          RTD_ = parser_.get_afd("RTD", "N");
-        }
-        break;
-      // case _CAN_MOV:
-      //   if (parser_.decode(_CAN_MOV, msg->data) == OK)
-      //   {
-      //     checkSensor |= 0b1000;
-      //     TS_voltage_ = parser_.get_afd("MOV", "N"); //min 268 V
-      //   }
-    }
-
-    if (checkSensor == 0b0111)
-    {
-      // if(TS_voltage_ > 268)
-      // {
-        if (brake_trigger_)
-        {
-          can_msgs::Frame RTDmsg;
-          RTDmsg.header.stamp = ros::Time::now();
-          RTDmsg.id = 0x0008A7D0;
-          RTDmsg.is_extended = 1;
-          RTDmsg.dlc = 8;
-          RTDmsg.data = {1, 0, 0, 0, 0, 0, 0, 1};
-          can_pub_.publish(RTDmsg);
-          if(RTD_)
-          {
-            std::cout << "RTD" << std::endl;
-            // send can message to the controller
-            std_msgs::Bool state;
-            state.data = 1;
-            state_pub_.publish(state);
-
-            for(int i = 0; i < 3; i++)
-            {
-              digitalWrite(1,HIGH);
-              delay(300);
-              digitalWrite(1,LOW);
-              delay(150);
-            }          
-          }
-        // }
-      }
-    }
-    else{
-      std_msgs::Bool state;
-      state.data = 0;
-      state_pub_.publish(state);
-    }    
-  }
-  void checkVCU() {
-    can_msgs::Frame vcu1msg;
-    vcu1msg.header.stamp = ros::Time::now();
-    vcu1msg.id = 0x0008A7D0;
-    vcu1msg.is_extended = 1;
-    vcu1msg.dlc = 8;
-    vcu1msg.data = {1, 0, 0, 0, 0, 0, 0, 0};
-    can_pub_.publish(vcu1msg);
-    std::cout << "CAN published" << std::endl;
-  }
-
-private:
-  Parser parser_;
-  std::shared_ptr<ros::NodeHandle> nh_;
-  ros::Publisher state_pub_;
-  ros::Publisher can_pub_;
-  ros::Subscriber can_sub_;
-  double TS_voltage_ = 0;
-  bool brake_trigger_ = false;
-  bool RTD_ = false;
+    private:
+        Parser parser_;
+        std::shared_ptr<ros::NodeHandle> nh_;
+        ros::Publisher state_pub_;
+        ros::Publisher can_pub_;
+        ros::Subscriber can_sub_;
+        double TS_voltage_ = 0;
+        bool brake_trigger_ = false;
+        bool RTD_ = false;
 };
 
-State_Controller::State_Controller(std::shared_ptr<ros::NodeHandle> &nh) : nh_(nh) {
-  std::cout << "node init" << std::endl;
-  parser_.init_parser();
-  state_pub_ = nh_->advertise<std_msgs::Bool>("node_state", 5);
-  can_pub_ = nh_->advertise<can_msgs::Frame>("sent_messages", 5);
-  can_sub_ = nh_->subscribe("received_messages", 5, &State_Controller::onCan, this);
-  
-  wiringPiSetup();
-  pinMode(1, OUTPUT);
-}
-
-typedef State_Controller SC;
-
-#endif
+#endif //STATE_CONTROLLER_HPP

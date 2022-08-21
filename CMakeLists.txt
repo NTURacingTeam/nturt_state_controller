@@ -20,7 +20,9 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}_node
-        src/state_controller_node.cpp)
+        src/state_controller.cpp
+        app/state_controller_node.cpp
+)
 
 target_link_libraries(${PROJECT_NAME}_node
       ${catkin_LIBRARIES}
