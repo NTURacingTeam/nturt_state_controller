@@ -76,7 +76,6 @@ public:
           checkSensor |= 0b0000100000;
           TS_voltage_ = parser_.get_afd("MOV", "N"); //min 268 V
         }
-      case 
     }
 
     if (checkSensor == 0b0000010010)
@@ -147,7 +146,7 @@ State_Controller::State_Controller(std::shared_ptr<ros::NodeHandle> &nh) : nh_(n
   can_sub_ = nh_->subscribe("received_messages", 5, &State_Controller::onCan, this);
   
   wiringPiSetup();
-  pinMode(0,OUTPUT);
+  pinMode(1, OUTPUT);
 }
 
 typedef State_Controller SC;
