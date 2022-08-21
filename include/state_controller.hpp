@@ -39,15 +39,15 @@ public:
           RTD_ = parser_.get_afd("RTD", "N");
         }
         break;
-      case _CAN_MOV:
-        if (parser_.decode(_CAN_MOV, msg->data) == OK)
-        {
-          checkSensor |= 0b1000;
-          TS_voltage_ = parser_.get_afd("MOV", "N"); //min 268 V
-        }
+      // case _CAN_MOV:
+      //   if (parser_.decode(_CAN_MOV, msg->data) == OK)
+      //   {
+      //     checkSensor |= 0b1000;
+      //     TS_voltage_ = parser_.get_afd("MOV", "N"); //min 268 V
+      //   }
     }
 
-    if (checkSensor == 0b1111)
+    if (checkSensor == 0b0111)
     {
       // if(TS_voltage_ > 268)
       // {
