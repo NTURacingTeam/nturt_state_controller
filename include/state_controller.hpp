@@ -21,67 +21,36 @@ public:
     // std::cout << "id: " << id << std::endl;
     switch (id)
     {
-      /* case _CAN_FB1:
-        if (parser_.decode(_CAN_FB1, msg->data) == OK) {
-          checkSensor |= 0b0000000001;
-          cout<<"received CAN FB1"<<endl;
-        }
-        break;*/
       case _CAN_FB2:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0000000010;
+          checkSensor |= 0b0001;
           brake_trigger_ = parser_.get_afd("BMS", "N");
         }
         break;
       case _CAN_RB1:
         if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0000000100;
+          checkSensor |= 0b0010;
         }
         break;
-      /*case _CAN_RB2:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0000001000;
-        }
-        break;*/
       case _CAN_DB1:
         if (parser_.decode(_CAN_DB1, msg->data) == OK)
         {
-          checkSensor |= 0b0000010000;
+          checkSensor |= 0b0100;
           RTD_ = parser_.get_afd("RTD", "N");
         }
         break;
-      /* case _CAN_BMS:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0001000000;
-        }
-        break;
-      case _CAN_HIS:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0010000000;
-        }
-        break;
-      case _CAN_HIA:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b0100000000;
-        }
-        break;
-      case _CAN_HIG:
-        if (parser_.decode(_CAN_FB2, msg->data) == OK) {
-          checkSensor |= 0b1000000000;
-        }
-        break;*/
       case _CAN_MOV:
         if (parser_.decode(_CAN_MOV, msg->data) == OK)
         {
-          checkSensor |= 0b0000100000;
+          checkSensor |= 0b1000;
           TS_voltage_ = parser_.get_afd("MOV", "N"); //min 268 V
         }
     }
 
-    if (checkSensor == 0b0000010010)
+    if (checkSensor == 0b1111)
     {
-      if(TS_voltage_ > 268)
-      {
+      // if(TS_voltage_ > 268)
+      // {
         if (brake_trigger_)
         {
           can_msgs::Frame RTDmsg;
@@ -101,13 +70,13 @@ public:
 
             for(int i = 0; i < 3; i++)
             {
-              digitalWrite(0,HIGH);
+              digitalWrite(1,HIGH);
               delay(300);
-              digitalWrite(0,LOW);
+              digitalWrite(1,LOW);
               delay(150);
             }          
           }
-        }
+        // }
       }
     }
     else{
