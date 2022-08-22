@@ -35,6 +35,16 @@ class StateController {
         double TS_voltage_ = 0;
         bool brake_trigger_ = false;
         bool RTD_ = false;
+
+        // shutdown button
+        /// @brief Timestemp when button is trigger in "button_duration_"
+        double button_trigger_time_ = 0;
+
+        /// @brief How many times the button is pushed in "button_duration_"
+        int button_push_times_ = 0;
+
+        /// @brief Time duration during which button trigger is counted as shutdown/reboot command
+        double button_duration_ = 3;
 };
 
 #endif //STATE_CONTROLLER_HPP
