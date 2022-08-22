@@ -7,7 +7,6 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) : nh_(_n
     can_pub_ = nh_->advertise<can_msgs::Frame>("sent_messages", 5);
     can_sub_ = nh_->subscribe("received_messages", 5, &StateController::onCan, this);
     
-    last_time_(ros::Time::now().toSec());
     wiringPiSetup();
     pinMode(1, OUTPUT);
 }
@@ -40,7 +39,7 @@ void StateController::onCan(const can_msgs::Frame::ConstPtr &_msg) {
                     button_trigger_time_ = ros::Time::now().toSec();
                     button_push_times_ ++;
                 }
-                else if(ros::Time::now.toSec() - button_trigger_time_ < button_duration_) {
+                else if(ros::Time::now().toSec() - button_trigger_time_ < button_duration_) {
                     button_push_times_ ++;
                 }
                 else {
