@@ -8,8 +8,11 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     button_timer_(_nh->createTimer(ros::Duration(1.0), &StateController::button_callback, this, true)) {
     
     parser_.init_parser();
+
+    #ifdef __arm__
     wiringPiSetup();
     pinMode(1, OUTPUT);
+    #endif
 }
 
 void StateController::update() {
@@ -125,10 +128,12 @@ void StateController::button_callback(const ros::TimerEvent &_event) {
 }
 
 void StateController::play_rtd_sound() {
+    #ifdef __arm__
     for(int i = 0; i < 3; i++) {
         digitalWrite(1, HIGH);
         delay(300);
         digitalWrite(1, LOW);
         delay(150);
     }
+    #endif
 }

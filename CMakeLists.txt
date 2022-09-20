@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         std_msgs
 )
+find_package(wiringPi)
 
 catkin_package(
         INCLUDE_DIRS include
@@ -24,7 +25,14 @@ add_executable(${PROJECT_NAME}_node
         app/state_controller_node.cpp
 )
 
+# to avoid error message not finding wiringPi
+if(${wiringPi_FOUND})
 target_link_libraries(${PROJECT_NAME}_node
-      ${catkin_LIBRARIES}
-      wiringPi
+        ${catkin_LIBRARIES}
+        wiringPi
 )
+else()
+target_link_libraries(${PROJECT_NAME}_node
+        ${catkin_LIBRARIES}
+)
+endif()
