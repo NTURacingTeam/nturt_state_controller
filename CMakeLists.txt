@@ -3,7 +3,7 @@ project(nturt_state_controller)
 
 find_package(catkin REQUIRED COMPONENTS
         can_msgs
-        nturt_can_parser
+        nturt_ros_interface
         roscpp
         std_msgs
 )
@@ -12,7 +12,7 @@ find_package(wiringPi)
 catkin_package(
         INCLUDE_DIRS include
         LIBRARIES nturt_state_controller
-        CATKIN_DEPENDS can_msgs nturt_can_parser roscpp std_msgs
+        CATKIN_DEPENDS can_msgs nturt_ros_interface roscpp std_msgs
 )
 
 include_directories(

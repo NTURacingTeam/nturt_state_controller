@@ -1,14 +1,38 @@
 #include "state_controller.hpp"
 
 StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
-    nh_(_nh), 
-    state_pub_(nh_->advertise<std_msgs::Bool>("/node_state", 10)),
-    can_pub_(nh_->advertise<can_msgs::Frame>("/sent_messages", 10)),
-    can_sub_(nh_->subscribe("/received_messages", 10, &StateController::onCan, this)),
+    nh_(_nh),
+    publish_frame_pub_(_nh->advertise<std_msgs::String>("/publish_can_frame", 10)),
+    state_pub_(_nh->advertise<std_msgs::Bool>("/node_state", 10)),
+    update_data_pub_(_nh->advertise<nturt_ros_interface::UpdateCanData>("/update_can_data", 10)),
+    get_data_clt_(_nh->serviceClient<nturt_ros_interface::GetCanData>("/get_can_data")),
+    register_clt_(_nh->serviceClient<nturt_ros_interface::RegisterCanNotification>("/register_can_notification")),
     button_timer_(_nh->createTimer(ros::Duration(1.0), &StateController::button_callback, this, true)) {
     
-    parser_.init_parser();
+    // register to can parser
+    // construct register call
+    nturt_ros_interface::RegisterCanNotification register_srv;
+    register_srv.request.node_name = ros::this_node::getName();
+    
+    /*
+    data name registering to be notified
+    brake_micro -> brake trigger (front box 1)
+    ready_to_drive -> rtd button (dashboard)
+    wheel_speed_front_left -> data to determine if rear box is working (rear box 1)
+    output_voltage -> mcu voltage (mcu_output_voltage)
+    */
+    register_srv.request.data_name = {"brake_micro", "ready_to_drive", "wheel_speed_front_left", "output_voltage"};
+    
+    // call service
+    if(!register_clt_.call(register_srv)) {
+        ROS_ERROR("register to can parser failed");
+        ros::shutdown();
+    }
 
+    // subscribe to the register topic
+    notification_sub_ = nh_->subscribe(register_srv.response.topic, 10, &StateController::onNotification, this);
+
+    // initiate wiringpi gpio
     #ifdef __arm__
     wiringPiSetup();
     pinMode(1, OUTPUT);
@@ -16,13 +40,13 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
 }
 
 void StateController::update() {
-    bool rtd_light = false;
-
-    /* ready to drive light condition:
+    /* 
+    ready to drive light condition:
         1. rtd had not yet triggered
         2. all state are set
         3. brake is currently actuated
     */
+   bool rtd_light = false;
     if(!rtd_triggered_) {
         if(check_state_ == 0b0111 && brake_trigger_) {
             rtd_light = true;
@@ -42,14 +66,16 @@ void StateController::update() {
         state_pub_.publish(state);
     }
 
-    // vcu can signal
-    can_msgs::Frame vcu_msg;
-    vcu_msg.header.stamp = ros::Time::now();
-    vcu_msg.id = 0x0008A7D0;
-    vcu_msg.is_extended = 1;
-    vcu_msg.dlc = 8;
-    vcu_msg.data = {1, 0, 0, 0, 0, 0, 0, rtd_light};
-    can_pub_.publish(vcu_msg);
+    // update vcu data
+    nturt_ros_interface::UpdateCanData update_msg;
+    // vcu light
+    update_msg.name = "vcu_light";
+    update_msg.data = 1;
+    update_data_pub_.publish(update_msg);
+    // rtd light
+    update_msg.name = "rtd_light";
+    update_msg.data = rtd_light;
+    update_data_pub_.publish(update_msg);
 }
 
 std::string StateController::get_string() {
@@ -61,55 +87,42 @@ std::string StateController::get_string() {
         "\n\tinternal state:" +
         "\n\t\tcheck_state: " +  std::to_string(check_state_) +
         "\n\t\trtd_triggered: " + (rtd_triggered_ ? "true" : "false") +
-        "\n\t\tbutton_push_times: " + std::to_string(button_push_times_) + '\n';
+        "\n\t\tbutton_push_times: " + std::to_string(button_push_times_);
 }
 
-void StateController::onCan(const can_msgs::Frame::ConstPtr &_msg) {
-    switch(_msg->id) {
-        case _CAN_FB2:
-            if(parser_.decode(_CAN_FB2, _msg->data) == OK) {
-                // front box state 1
-                check_state_ |= 0b1;
-                brake_trigger_ = std::bitset<8>(_msg->data[7])[1];
+void StateController::onNotification(const nturt_ros_interface::UpdateCanData::ConstPtr &_msg) {
+    if(_msg->name == "brake_micro") {
+        // front box state 1
+        check_state_ |= 0b1;
+        brake_trigger_ = _msg->data;
+    }
+    else if(_msg->name == "ready_to_drive") {
+        // dashboard state 2
+        check_state_ |= 0b10;
+        rtd_button_trigger_ = _msg->data;
+        
+        // button shutdown/reboot control
+        if(rtd_button_trigger_) {
+            if(button_push_times_ == 0) {
+                button_push_times_++;
+                button_timer_.stop();
+                button_timer_.start();
             }
-            break;
-
-        case _CAN_RB1:
-            if(parser_.decode(_CAN_RB1, _msg->data) == OK) {
-                // front box state 2
-                check_state_ |= 0b10;
+            else {
+                button_push_times_++;
+                button_timer_.stop();
+                button_timer_.start();
             }
-            break;
-
-        case _CAN_DB1:
-            if(parser_.decode(_CAN_DB1, _msg->data) == OK) {
-                // front box state 4
-                check_state_ |= 0b100;
-                rtd_button_trigger_ = _msg->data[0];
-                
-                // button shutdown/reboot control
-                if(rtd_button_trigger_) {
-                    if(button_push_times_ == 0) {
-                        button_push_times_++;
-                        button_timer_.stop();
-                        button_timer_.start();
-                    }
-                    else {
-                        button_push_times_++;
-                        button_timer_.stop();
-                        button_timer_.start();
-                    }
-                }
-            }
-            break;
-
-        case _CAN_MOV:
-            if(parser_.decode(_CAN_MOV, _msg->data) == OK) {
-                // front box state 8
-                check_state_ |= 0b1000;
-                ts_voltage_ = parser_.get_afd("MOV", "N"); //min 268 V
-            }
-            break;
+        }
+    }
+    else if(_msg->name == "wheel_speed_front_left") {
+        // rear box state 4
+        check_state_ |= 0b100;
+    }
+    else if(_msg->name == "output_voltage") {
+        // mcu state 8
+        check_state_ |= 0b1000;
+        ts_voltage_ = _msg->data; //min 268 V
     }
 }
 
