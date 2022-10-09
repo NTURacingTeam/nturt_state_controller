@@ -8,7 +8,6 @@
 #define STATE_CONTROLLER_HPP
 
 // std include
-#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -45,13 +44,13 @@ class StateController {
         void update();
 
         /// @brief Get the string representation of the internal states.
-        std::string get_string();
+        std::string get_string() const;
 
     private:
         /// @brief Pointer to ros node handle.
         std::shared_ptr<ros::NodeHandle> nh_;
 
-        /// @brief Publisher to "/publish_can_frame", for publishing can frames.
+        /// @brief Publisher to "/publish_can_frame", for publishing can frames (not used for now).
         ros::Publisher publish_frame_pub_;
 
         /// @brief Publisher to "/node_state", for controlling other nodes in nturt.
@@ -102,7 +101,7 @@ class StateController {
         void button_callback(const ros::TimerEvent &_event);
 
         /// @brief Function for playing rtd sound.
-        void play_rtd_sound();
+        void play_rtd_sound() const;
 };
 
 #endif //STATE_CONTROLLER_HPP

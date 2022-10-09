@@ -16,7 +16,7 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     
     /*
     data name registering to be notified
-    brake_micro -> brake trigger (front box 1)
+    brake_micro -> brake trigger (front box 2)
     ready_to_drive -> rtd button (dashboard)
     wheel_speed_front_left -> data to determine if rear box is working (rear box 1)
     output_voltage -> mcu voltage (mcu_output_voltage)
@@ -78,7 +78,7 @@ void StateController::update() {
     update_data_pub_.publish(update_msg);
 }
 
-std::string StateController::get_string() {
+std::string StateController::get_string() const {
     return std::string("state_controller state:") +
         "\n\tmessage in:" +
         "\n\t\tts_voltage: " + std::to_string(ts_voltage_) +
@@ -140,7 +140,7 @@ void StateController::button_callback(const ros::TimerEvent &_event) {
     }
 }
 
-void StateController::play_rtd_sound() {
+void StateController::play_rtd_sound() const{
     #ifdef __arm__
     for(int i = 0; i < 3; i++) {
         digitalWrite(1, HIGH);
