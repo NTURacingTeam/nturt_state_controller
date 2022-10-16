@@ -23,3 +23,16 @@ Specially required by fsae rule, is will check the state of the tractive and ele
 ### Shutdown/reboot button
 
 The ready to drive (rtd) button can be used to control the shutdown/reboot of the vehicle control unit (vcu). Press the button 3 ~ 4 times in a short will cause the vcu to reboot, 5 times orabove will cause it to shutdown.
+
+## Known issue
+
+### Compiling error due to `wiringPi` (only for arm computer that`s not rpi)
+
+Since `wiringPi` is a preinstalled package only for raspberry pi and no other computer can install it properly. Yet it's still required (in c++) in order to control gpios of rpi.
+
+To avoid running compiling error due to not finding `wiringPi`, the work around is
+
+1. Check if `__arm__` macro is defined it the c++ source files. If not, don't use `wiringPi`.
+2. Check `if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")` in `CMakeLists.txt`. If false, don't link the binary to `wiringPi`.
+
+Hence, computers that's not arm structure will be fine. Yet computers that are arm structure and not rpi will still compile error. There's probably no solution to such problem, hence this error may not be patched.

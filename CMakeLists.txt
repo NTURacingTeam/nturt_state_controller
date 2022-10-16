@@ -25,7 +25,7 @@ add_executable(${PROJECT_NAME}_node
 )
 
 # to avoid error message not finding wiringPi
-if(${wiringPi_FOUND})
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
 target_link_libraries(${PROJECT_NAME}_node
         ${catkin_LIBRARIES}
         wiringPi

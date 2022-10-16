@@ -10,10 +10,14 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     button_timer_(_nh->createTimer(ros::Duration(1.0), &StateController::button_callback, this, true)) {
     
     // register to can parser
+    // wait until "/register_can_notification" service is avalible
+    if(!ros::service::waitForService("/register_can_notification", 10000)) {
+        ROS_FATAL("register to can parser timeout after 10 seconds");
+        ros::shutdown();
+    }
     // construct register call
     nturt_ros_interface::RegisterCanNotification register_srv;
     register_srv.request.node_name = ros::this_node::getName();
-    
     /*
     data name registering to be notified
     brake_micro -> brake trigger (front box 2)
@@ -22,10 +26,9 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     output_voltage -> mcu voltage (mcu_output_voltage)
     */
     register_srv.request.data_name = {"brake_micro", "ready_to_drive", "wheel_speed_front_left", "output_voltage"};
-    
     // call service
     if(!register_clt_.call(register_srv)) {
-        ROS_ERROR("register to can parser failed");
+        ROS_FATAL("register to can parser failed");
         ros::shutdown();
     }
 

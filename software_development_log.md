@@ -4,7 +4,7 @@
 ##### Person in charge: 羅紀翔
 ##### Authors: 羅紀翔 高仕懷
 ##### Subsystem: RP1
-##### Subsystem number: RP3
+##### Subsystem number: RP6
 ##### Software name: state_controller
 ##### Repository: [github](https://github.com/NTURacingTeam/nturt_state_controller.git)
 ##### Started designing date: 2022/4/21
