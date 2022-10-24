@@ -14,9 +14,7 @@
 #include <vector>
 
 // gpio include
-#ifdef __arm__
 #include <wiringPi.h>
-#endif
 
 // ros include
 #include <ros/ros.h>

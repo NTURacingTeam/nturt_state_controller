@@ -26,7 +26,7 @@ The ready to drive (rtd) button can be used to control the shutdown/reboot of th
 
 ## Known issue
 
-### Compiling error due to `wiringPi` (only for arm computer that`s not rpi)
+### Compiling error due to `wiringPi` (only for arm computer that`s not rpi) (fixed, maybe)
 
 Since `wiringPi` is a preinstalled package only for raspberry pi and no other computer can install it properly. Yet it's still required (in c++) in order to control gpios of rpi.
 

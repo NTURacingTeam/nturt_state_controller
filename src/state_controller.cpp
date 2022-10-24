@@ -36,10 +36,8 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     notification_sub_ = nh_->subscribe(register_srv.response.topic, 10, &StateController::onNotification, this);
 
     // initiate wiringpi gpio
-    #ifdef __arm__
     wiringPiSetup();
     pinMode(1, OUTPUT);
-    #endif
 }
 
 void StateController::update() {
@@ -131,11 +129,15 @@ void StateController::onNotification(const nturt_ros_interface::UpdateCanData::C
 
 void StateController::button_callback(const ros::TimerEvent &_event) {
     if(button_push_times_ >= 5) {
-        system("echo \"sudo service nturt_ros stop && sudo poweroff\" > $(rospack find nturt_rpi_deployer)/nturt_ros_pipe");
+        if(system("echo \"sudo service nturt_ros stop && sudo poweroff\" > $(rospack find nturt_rpi_deployer)/nturt_ros_pipe") != 0) {
+            ROS_FATAL("Failed to execute shutdown command.");
+        }
         button_push_times_ = 0;
     }
     else if(button_push_times_ >= 3) {
-        system("echo \"sudo service nturt_ros stop && sudo reboot\" > $(rospack find nturt_rpi_deployer)/nturt_ros_pipe");
+        if(system("echo \"sudo service nturt_ros stop && sudo reboot\" > $(rospack find nturt_rpi_deployer)/nturt_ros_pipe") != 0) {
+            ROS_FATAL("Failed to execute reboot command.");
+        }
         button_push_times_ = 0;
     }
     else {
@@ -144,12 +146,10 @@ void StateController::button_callback(const ros::TimerEvent &_event) {
 }
 
 void StateController::play_rtd_sound() const{
-    #ifdef __arm__
     for(int i = 0; i < 3; i++) {
         digitalWrite(1, HIGH);
         delay(300);
         digitalWrite(1, LOW);
         delay(150);
     }
-    #endif
 }

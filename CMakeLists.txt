@@ -19,19 +19,32 @@ include_directories(
         ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME}_node
+# libraries
+# library: nturt_state_controller
+add_library(${PROJECT_NAME}
         src/state_controller.cpp
-        app/state_controller_node.cpp
 )
 
-# to avoid error message not finding wiringPi
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
-target_link_libraries(${PROJECT_NAME}_node
+target_link_libraries(${PROJECT_NAME}
         ${catkin_LIBRARIES}
         wiringPi
 )
-else()
+
+# build this package after "nturt_ros_interface" has already finished generating
+add_dependencies(${PROJECT_NAME}
+        nturt_ros_interface_generate_messages_cpp)
+
+# applications
+# executable: nturt_torque_controller_node
+add_executable(${PROJECT_NAME}_node
+        app/state_controller_node.cpp
+)
+
 target_link_libraries(${PROJECT_NAME}_node
         ${catkin_LIBRARIES}
+        ${PROJECT_NAME}
 )
-endif()
+
+# build this package after "nturt_ros_interface" has already finished generating
+add_dependencies(${PROJECT_NAME}_node
+        nturt_ros_interface_generate_messages_cpp)
