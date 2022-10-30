@@ -1,7 +1,7 @@
 /**
  * @file state_controller.hpp
- * @author quantumspawner jet22854111@gmail.com
  * @brief ROS package for controller the state of other nodes in nturt.
+ * @author quantumspawner jet22854111@gmail.com
  */
 
 #ifndef STATE_CONTROLLER_HPP
@@ -27,8 +27,8 @@
 #include "nturt_ros_interface/UpdateCanData.h"
 
 /**
- * @author QuantumSpawner jet22854111@gmail.com
  * @brief Class for controlling the states of other nodes in nturt.
+ * @author QuantumSpawner jet22854111@gmail.com
  */
 class StateController {
     public:

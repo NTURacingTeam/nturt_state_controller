@@ -6,7 +6,6 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         std_msgs
 )
-find_package(wiringPi)
 
 catkin_package(
         INCLUDE_DIRS include
