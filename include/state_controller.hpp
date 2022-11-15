@@ -1,7 +1,7 @@
 /**
  * @file state_controller.hpp
- * @brief ROS package for controller the state of other nodes in nturt.
  * @author quantumspawner jet22854111@gmail.com
+ * @brief ROS package for controlling the state of other nodes in nturt.
  */
 
 #ifndef STATE_CONTROLLER_HPP
@@ -27,8 +27,8 @@
 #include "nturt_ros_interface/UpdateCanData.h"
 
 /**
- * @brief Class for controlling the states of other nodes in nturt.
  * @author QuantumSpawner jet22854111@gmail.com
+ * @brief Class for controlling the states of other nodes in nturt.
  */
 class StateController {
     public:
@@ -66,6 +66,10 @@ class StateController {
         /// @brief Service client to "/register_can_notification", for registering to notification.
         ros::ServiceClient register_clt_;
 
+        /// @brief Timer for determine the comman of button.
+        ros::Timer button_timer_;
+
+        // internal control parameters
         // ready to drive (rtd)
         /// @brief State of the electrical system.
         int check_state_ = 0;
@@ -83,9 +87,6 @@ class StateController {
         bool rtd_triggered_ = false;
 
         // shutdown button
-        /// @brief Timer for determine the comman of button.
-        ros::Timer button_timer_;
-
         /// @brief How many times the button is pushed in "button_duration_".
         int button_push_times_ = 0;
 

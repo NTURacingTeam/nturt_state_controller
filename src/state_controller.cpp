@@ -25,7 +25,12 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     wheel_speed_front_left -> data to determine if rear box is working (rear box 1)
     output_voltage -> mcu voltage (mcu_output_voltage)
     */
-    register_srv.request.data_name = {"brake_micro", "ready_to_drive", "wheel_speed_front_left", "output_voltage"};
+    register_srv.request.data_name = {
+        "brake_micro",
+        "ready_to_drive",
+        "wheel_speed_front_left",
+        "output_voltage"
+    };
     // call service
     if(!register_clt_.call(register_srv)) {
         ROS_FATAL("register to can parser failed");
@@ -37,7 +42,7 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
 
     // initiate wiringpi gpio
     wiringPiSetup();
-    pinMode(1, OUTPUT);
+    pinMode(29, OUTPUT);
 }
 
 void StateController::update() {
@@ -49,7 +54,7 @@ void StateController::update() {
     */
    bool rtd_light = false;
     if(!rtd_triggered_) {
-        if(check_state_ == 0b0111 && brake_trigger_) {
+        if(check_state_ == 0b1111 && brake_trigger_) {
             rtd_light = true;
             if(rtd_button_trigger_) {
                 rtd_triggered_ = true;
@@ -121,9 +126,12 @@ void StateController::onNotification(const nturt_ros_interface::UpdateCanData::C
         check_state_ |= 0b100;
     }
     else if(_msg->name == "output_voltage") {
-        // mcu state 8
-        check_state_ |= 0b1000;
-        ts_voltage_ = _msg->data; //min 268 V
+        ts_voltage_ = _msg->data;
+        //min 268 V
+        if(ts_voltage_ >= 268) {
+            // mcu state 8
+            check_state_ |= 0b1000;
+        }
     }
 }
 
@@ -147,9 +155,9 @@ void StateController::button_callback(const ros::TimerEvent &_event) {
 
 void StateController::play_rtd_sound() const{
     for(int i = 0; i < 3; i++) {
-        digitalWrite(1, HIGH);
-        delay(300);
-        digitalWrite(1, LOW);
-        delay(150);
+        digitalWrite(29, HIGH);
+        ros::Duration(0.3).sleep();
+        digitalWrite(29, LOW);
+        ros::Duration(0.15).sleep();
     }
 }
