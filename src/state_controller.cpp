@@ -28,8 +28,8 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     register_srv.request.data_name = {
         "brake_micro",
         "ready_to_drive",
-        "wheel_speed_front_left",
-        "output_voltage"
+        "front_left_wheel_speed",
+        "input_voltage"
     };
     // call service
     if(!register_clt_.call(register_srv)) {
@@ -121,13 +121,13 @@ void StateController::onNotification(const nturt_ros_interface::UpdateCanData::C
             }
         }
     }
-    else if(_msg->name == "wheel_speed_front_left") {
+    else if(_msg->name == "front_left_wheel_speed") {
         // rear box state 4
         check_state_ |= 0b100;
     }
-    else if(_msg->name == "output_voltage") {
+    else if(_msg->name == "input_voltage") {
         ts_voltage_ = _msg->data;
-        //min 268 V
+        // minium 268 V
         if(ts_voltage_ >= 268) {
             // mcu state 8
             check_state_ |= 0b1000;
