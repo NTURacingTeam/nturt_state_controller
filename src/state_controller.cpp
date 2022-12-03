@@ -22,7 +22,7 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     data name registering to be notified
     brake_micro -> brake trigger (front box 2)
     ready_to_drive -> rtd button (dashboard)
-    wheel_speed_front_left -> data to determine if rear box is working (rear box 1)
+    front_left_wheel_speed -> data to determine if rear box is working (rear box 1)
     output_voltage -> mcu voltage (mcu_output_voltage)
     */
     register_srv.request.data_name = {

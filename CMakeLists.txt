@@ -31,7 +31,8 @@ target_link_libraries(${PROJECT_NAME}
 
 # build this package after "nturt_ros_interface" has already finished generating
 add_dependencies(${PROJECT_NAME}
-        nturt_ros_interface_generate_messages_cpp)
+        ${catkin_EXPORTED_TARGETS}
+)
 
 # applications
 # executable: nturt_torque_controller_node
@@ -46,4 +47,5 @@ target_link_libraries(${PROJECT_NAME}_node
 
 # build this package after "nturt_ros_interface" has already finished generating
 add_dependencies(${PROJECT_NAME}_node
-        nturt_ros_interface_generate_messages_cpp)
+        ${catkin_EXPORTED_TARGETS}
+)
