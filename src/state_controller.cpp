@@ -127,8 +127,8 @@ void StateController::onNotification(const nturt_ros_interface::UpdateCanData::C
     }
     else if(_msg->name == "input_voltage") {
         ts_voltage_ = _msg->data;
-        // minium 268 V
-        if(ts_voltage_ >= 268) {
+        // minium 250 V
+        if(ts_voltage_ >= 250) {
             // mcu state 8
             check_state_ |= 0b1000;
         }
