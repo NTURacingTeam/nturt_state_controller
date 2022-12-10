@@ -8,10 +8,13 @@
 #define STATE_CONTROLLER_HPP
 
 // std include
+#include <map>
+#include <math.h>
 #include <memory>
 #include <string>
 #include <thread>
 #include <vector>
+#include <utility>
 
 // gpio include
 #include <wiringPi.h>
@@ -71,10 +74,28 @@ class StateController {
 
         // internal control parameters
         // ready to drive (rtd)
-        /// @brief State of the electrical system.
-        int check_state_ = 0;
+        /**
+         * @brief State of the vehicle to be checked, which is determined by can data name corresponds to that state.
+         * 
+         * brake_micro -> brake trigger (front_box_2)
+         * ready_to_drive -> rtd button (dashboard)
+         * front_left_wheel_speed -> data to determine if rear box is working (rear_box_1)
+         * input_voltage -> mcu voltage (mcu_voltage)
+         */
+        const std::vector<std::string> state_to_check_ = {
+            "brake_micro",
+            "ready_to_drive",
+            "rear_left_wheel_speed",
+            "input_voltage"
+        };
 
-        /// @brief Voltage of the tractive system [V].
+        /// @brief Vector storing last stable time of the vehicle.
+        std::vector<double> last_stable_time_;
+        
+        /// @brief Map mapping the state of the vehicle to be checked to its index in "check_state_".
+        std::map<std::string, int> state_to_check_filter_;
+
+        /// @brief Voltage of the tractive system \f$[V]\f$.
         double ts_voltage_ = 0;
 
         /// @brief RTD button trigger.
@@ -86,18 +107,27 @@ class StateController {
         /// @brief If rtd had triggered.
         bool rtd_triggered_ = false;
 
+        /// @brief Time threshold when time difference between "last_stable_time" and present time is higher, deactive the vcu \f$[s]\f$.
+        double deactive_threshold_ = 2.0;
+
         // shutdown button
         /// @brief How many times the button is pushed in "button_duration_".
         int button_push_times_ = 0;
 
         /// @brief Time duration during which button trigger is counted as shutdown/reboot command.
-        double button_duration_ = 3;
+        const double button_duration_ = 3;
 
         /// @brief Callback function when receiving message form can data notification.
         void onNotification(const nturt_ros_interface::UpdateCanData::ConstPtr &_msg);
 
         /// @brief Timed callback function called after "button_duration_" without trigger the button.
         void button_callback(const ros::TimerEvent &_event);
+
+        /**
+         * @brief Function to check the state of the vehicle.
+         * @return true If all state of the vehicle are good.
+         */
+        bool check_state() const;
 
         /// @brief Function for playing rtd sound.
         void play_rtd_sound() const;

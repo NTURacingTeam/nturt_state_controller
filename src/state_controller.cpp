@@ -7,8 +7,14 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     update_data_pub_(_nh->advertise<nturt_ros_interface::UpdateCanData>("/update_can_data", 10)),
     get_data_clt_(_nh->serviceClient<nturt_ros_interface::GetCanData>("/get_can_data")),
     register_clt_(_nh->serviceClient<nturt_ros_interface::RegisterCanNotification>("/register_can_notification")),
-    button_timer_(_nh->createTimer(ros::Duration(1.0), &StateController::button_callback, this, true)) {
+    button_timer_(_nh->createTimer(ros::Duration(1.0), &StateController::button_callback, this, true)),
+    last_stable_time_(state_to_check_.size(), 0) {
     
+    // initialize state_to_check_filter_
+    for(int i = 0; i < state_to_check_.size(); i++) {
+        state_to_check_filter_[state_to_check_[i]] = i;
+    }
+
     // register to can parser
     // wait until "/register_can_notification" service is avalible
     if(!ros::service::waitForService("/register_can_notification", 10000)) {
@@ -18,19 +24,7 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     // construct register call
     nturt_ros_interface::RegisterCanNotification register_srv;
     register_srv.request.node_name = ros::this_node::getName();
-    /*
-    data name registering to be notified
-    brake_micro -> brake trigger (front box 2)
-    ready_to_drive -> rtd button (dashboard)
-    front_left_wheel_speed -> data to determine if rear box is working (rear box 1)
-    output_voltage -> mcu voltage (mcu_output_voltage)
-    */
-    register_srv.request.data_name = {
-        "brake_micro",
-        "ready_to_drive",
-        "front_left_wheel_speed",
-        "input_voltage"
-    };
+    register_srv.request.data_name = state_to_check_;
     // call service
     if(!register_clt_.call(register_srv)) {
         ROS_FATAL("register to can parser failed");
@@ -46,37 +40,54 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
 }
 
 void StateController::update() {
-    /* 
-    ready to drive light condition:
-        1. rtd had not yet triggered
-        2. all state are set
-        3. brake is currently actuated
-    */
-   bool rtd_light = false;
-    if(!rtd_triggered_) {
-        if(check_state_ == 0b1111 && brake_trigger_) {
-            rtd_light = true;
-            if(rtd_button_trigger_) {
-                rtd_triggered_ = true;
-                std::thread th(&StateController::play_rtd_sound, this);
-                th.detach();
+    bool vcu_light = false;
+    bool rtd_light = false;
+    bool activate = false;
+    
+    if(check_state()) {
+        if(!rtd_triggered_) {
+            if(brake_trigger_) {
+                if(rtd_button_trigger_) {
+                    rtd_triggered_ = true;
+                    std::thread play_rtd_sound_thread(&StateController::play_rtd_sound, this);
+                    play_rtd_sound_thread.detach();
+                }
+                else {
+                    rtd_light = true;
+                }
+            }
+            else {
+                // blink rtd_light, with frequency of 1 Hz
+                double now = ros::Time::now().toSec(), intpart;
+                std::modf(now * 2, &intpart);
+                rtd_light = static_cast<int>(intpart) % 2;
+
             }
         }
-        std_msgs::Bool state;
-        state.data = false;
-        state_pub_.publish(state);
+        else {
+            activate = true;
+        }
+        vcu_light = true;
     }
     else {
-        std_msgs::Bool state;
-        state.data = true;
-        state_pub_.publish(state);
+        rtd_triggered_ = false;
+
+        // blink vcu_light, with frequency of 1 Hz
+        double now = ros::Time::now().toSec(), intpart;
+        std::modf(now * 2, &intpart);
+        vcu_light = static_cast<int>(intpart) % 2;
     }
 
+    // publish state to "/node_state"
+    std_msgs::Bool state;
+    state.data = activate;
+    state_pub_.publish(state);
+    
     // update vcu data
     nturt_ros_interface::UpdateCanData update_msg;
     // vcu light
     update_msg.name = "vcu_light";
-    update_msg.data = 1;
+    update_msg.data = vcu_light;
     update_data_pub_.publish(update_msg);
     // rtd light
     update_msg.name = "rtd_light";
@@ -85,53 +96,65 @@ void StateController::update() {
 }
 
 std::string StateController::get_string() const {
+    std::string last_stable_time;
+    for(int i = 0; i < state_to_check_.size(); i++) {
+        last_stable_time += (std::string("\n\t\t\t") + state_to_check_[i] + " :" + std::to_string(last_stable_time_[i]));
+    }
+
     return std::string("state_controller state:") +
         "\n\tmessage in:" +
         "\n\t\tts_voltage: " + std::to_string(ts_voltage_) +
         "\n\t\trtd_button_trigger: " + std::to_string(rtd_button_trigger_) +
         "\n\t\tbrake_trigger: " + std::to_string(brake_trigger_) +
         "\n\tinternal state:" +
-        "\n\t\tcheck_state: " +  std::to_string(check_state_) +
+        "\n\t\tlast_stable_time: " + last_stable_time +
         "\n\t\trtd_triggered: " + (rtd_triggered_ ? "true" : "false") +
         "\n\t\tbutton_push_times: " + std::to_string(button_push_times_);
 }
 
 void StateController::onNotification(const nturt_ros_interface::UpdateCanData::ConstPtr &_msg) {
-    if(_msg->name == "brake_micro") {
-        // front box state 1
-        check_state_ |= 0b1;
-        brake_trigger_ = _msg->data;
-    }
-    else if(_msg->name == "ready_to_drive") {
-        // dashboard state 2
-        check_state_ |= 0b10;
-        rtd_button_trigger_ = _msg->data;
+    switch(state_to_check_filter_[_msg->name]) {
+        // break_micro
+        case 0:
+            brake_trigger_ = _msg->data;
+            
+            last_stable_time_[0] = ros::Time::now().toSec();
+            break;
         
-        // button shutdown/reboot control
-        if(rtd_button_trigger_) {
-            if(button_push_times_ == 0) {
-                button_push_times_++;
-                button_timer_.stop();
-                button_timer_.start();
+        // ready_to_drive
+        case 1:
+            rtd_button_trigger_ = _msg->data;
+            // button shutdown/reboot control
+            if(rtd_button_trigger_) {
+                if(button_push_times_ == 0) {
+                    button_push_times_++;
+                    button_timer_.stop();
+                    button_timer_.start();
+                }
+                else {
+                    button_push_times_++;
+                    button_timer_.stop();
+                    button_timer_.start();
+                }
             }
-            else {
-                button_push_times_++;
-                button_timer_.stop();
-                button_timer_.start();
+
+            last_stable_time_[1] = ros::Time::now().toSec();
+            break;
+
+        // rear_left_wheel_speed
+        case 2:
+            last_stable_time_[2] = ros::Time::now().toSec();
+            break;
+        
+        // input_voltage
+        case 3:
+            ts_voltage_ = _msg->data;
+
+            // minium 250 V
+            if(ts_voltage_ >= 250) {
+                last_stable_time_[3] = ros::Time::now().toSec();
             }
-        }
-    }
-    else if(_msg->name == "front_left_wheel_speed") {
-        // rear box state 4
-        check_state_ |= 0b100;
-    }
-    else if(_msg->name == "input_voltage") {
-        ts_voltage_ = _msg->data;
-        // minium 250 V
-        if(ts_voltage_ >= 250) {
-            // mcu state 8
-            check_state_ |= 0b1000;
-        }
+            break;
     }
 }
 
@@ -151,6 +174,17 @@ void StateController::button_callback(const ros::TimerEvent &_event) {
     else {
         button_push_times_ = 0;
     }
+}
+
+bool StateController::check_state() const {
+    double current_time = ros::Time::now().toSec();
+    for(const double &last_time : last_stable_time_) {
+        if(current_time - last_time > deactive_threshold_) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void StateController::play_rtd_sound() const{
