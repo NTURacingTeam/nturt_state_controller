@@ -14,7 +14,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <utility>
 
 // gpio include
 #include <wiringPi.h>
@@ -109,6 +108,9 @@ class StateController {
 
         /// @brief Time threshold when time difference between "last_stable_time" and present time is higher, deactive the vcu \f$[s]\f$.
         double deactive_threshold_ = 2.0;
+        
+        /// @brief State that vcu is deactivated by, which is determined by can data name corresponds to that state.
+        std::string deactivated_by_ = "";
 
         // shutdown button
         /// @brief How many times the button is pushed in "button_duration_".
@@ -124,10 +126,16 @@ class StateController {
         void button_callback(const ros::TimerEvent &_event);
 
         /**
+         * @brief Function to check the state of the vehicle, modify "deactivated_by_" to the state that is not good.
+         * @return true If all state of the vehicle are good.
+         */
+        bool check_state();
+
+        /**
          * @brief Function to check the state of the vehicle.
          * @return true If all state of the vehicle are good.
          */
-        bool check_state() const;
+        bool check_state_const() const;
 
         /// @brief Function for playing rtd sound.
         void play_rtd_sound() const;

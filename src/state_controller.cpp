@@ -32,7 +32,7 @@ StateController::StateController(std::shared_ptr<ros::NodeHandle> &_nh) :
     }
 
     // subscribe to the register topic
-    notification_sub_ = nh_->subscribe(register_srv.response.topic, 10, &StateController::onNotification, this);
+    notification_sub_ = nh_->subscribe(register_srv.response.topic, 1000, &StateController::onNotification, this);
 
     // initiate wiringpi gpio
     wiringPiSetup();
@@ -60,7 +60,7 @@ void StateController::update() {
                 // blink rtd_light, with frequency of 1 Hz
                 double now = ros::Time::now().toSec(), intpart;
                 std::modf(now * 2, &intpart);
-                rtd_light = static_cast<int>(intpart) % 2;
+                rtd_light = static_cast<uint64_t>(intpart) % 2;
 
             }
         }
@@ -71,11 +71,12 @@ void StateController::update() {
     }
     else {
         rtd_triggered_ = false;
+        ROS_WARN("Warn: VCU is deactivated by %s.", deactivated_by_.c_str());
 
         // blink vcu_light, with frequency of 1 Hz
         double now = ros::Time::now().toSec(), intpart;
         std::modf(now * 2, &intpart);
-        vcu_light = static_cast<int>(intpart) % 2;
+        vcu_light = static_cast<uint64_t>(intpart) % 2;
     }
 
     // publish state to "/node_state"
@@ -107,6 +108,7 @@ std::string StateController::get_string() const {
         "\n\t\trtd_button_trigger: " + std::to_string(rtd_button_trigger_) +
         "\n\t\tbrake_trigger: " + std::to_string(brake_trigger_) +
         "\n\tinternal state:" +
+        "\n\t\tcheck_state: " + (check_state_const() ? "true" : "false") +
         "\n\t\tlast_stable_time: " + last_stable_time +
         "\n\t\trtd_triggered: " + (rtd_triggered_ ? "true" : "false") +
         "\n\t\tbutton_push_times: " + std::to_string(button_push_times_);
@@ -176,7 +178,19 @@ void StateController::button_callback(const ros::TimerEvent &_event) {
     }
 }
 
-bool StateController::check_state() const {
+bool StateController::check_state() {
+    double current_time = ros::Time::now().toSec();
+    for(int i = 0; i < state_to_check_.size(); i++) {
+        if(current_time - last_stable_time_[i] > deactive_threshold_) {
+            deactivated_by_ = state_to_check_[i];
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool StateController::check_state_const() const {
     double current_time = ros::Time::now().toSec();
     for(const double &last_time : last_stable_time_) {
         if(current_time - last_time > deactive_threshold_) {
